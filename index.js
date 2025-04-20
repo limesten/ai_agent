@@ -4,19 +4,34 @@ process.removeAllListeners('warning');
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import readline from "readline";
-import { readFile } from "./tools.js";
+import { readFile, listFiles } from "./tools.js";
 
-const readFileFunctionDeclaration = {
-    name: "readFile",
-    description: "Reads a file and returns the content",
-    parameters: {
+const toolRegistry = [
+    {
+      name: "readFile",
+      description: "Reads a file and returns the content",
+      parameters: {
         type: "object",
         properties: {
-            filePath: { type: "string", description: "The path to the file to read" }
+          filePath: { type: "string", description: "The path to the file to read" }
         },
         required: ["filePath"]
+      },
+      handler: readFile
+    },
+    {
+      name: "listFiles",
+      description: "List the contents of a directory",
+      parameters: {
+        type: "object",
+        properties: {
+          dirPath: { type: "string", description: "The path to the directory to list" }
+        },
+        required: ["dirPath"]
+      },
+      handler: listFiles
     }
-}
+  ];
 
 async function main() {
 
@@ -38,9 +53,15 @@ async function main() {
     
     const agent = new GoogleGenAI({ apiKey: apiKey });
 
+    const functionDeclarations = toolRegistry.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters
+      }));
+
     const config = {
         tools: [{
-            functionDeclarations: [readFileFunctionDeclaration]
+            functionDeclarations: functionDeclarations
         }]
     };
 
@@ -56,31 +77,52 @@ async function runAgent(agent, getUserMessage, config) {
 
     console.log("Chat with Gemini (use 'ctrl-c' to quit)");
 
+    let readUserInput = true;
+    let content = "";
     while (true) {
         try {
-            const userMessage = await getUserMessage("You: ");
+            // If we got tool results from last interaction (readUserInput = false)
+            // Then we feed those directly to the model instead of getting new user input
+            if (readUserInput) {
+                content = await getUserMessage("You: ");
+            }
 
             const response = await chat.sendMessage({
-                message: userMessage,
+                message: content,
             });
 
             if (response.functionCalls && response.functionCalls.length > 0) {
+
+                const toolResults = [];
+
                 for (const functionCall of response.functionCalls) {
-                    if (functionCall.name === "readFile") {
-                        const args = functionCall.args;
-                        const content = readFile(args.filePath);
-                        
-                        const followUpResponse = await chat.sendMessage({
-                            message: content,
+                    const tool = toolRegistry.find(t => t.name === functionCall.name);
+                    if (tool) {
+                        const result = tool.handler(functionCall.args);
+                        toolResults.push({
+                            tool: functionCall.name,
+                            result: result
                         });
-                        console.log(`\nGemini: ${followUpResponse.text}`);
+                    } else {
+                        toolResults.push({
+                            tool: functionCall.name,
+                            result: `Unknown function: ${functionCall.name}`
+                        });
                     }
                 }
+
+                content = toolResults.map(tr => 
+                    `Result from ${tr.tool}:\n${tr.result}`
+                ).join('\n\n');
+
+                readUserInput = false;
             } else {
                 console.log(`\nGemini: ${response.text}`);
+                readUserInput = true;
             }
         } catch (error) {
             console.error("Error:", error.message);
+            process.exit(1);
         }
     }
 }

@@ -1,7 +1,13 @@
 import fs from "fs";
 import path from "path";
 
-function readFile(filePath) {
+function readFile(args) {
+    if (!args || !args.filePath) {
+        return "Error: No file path provided";
+    }
+
+    const filePath = args.filePath;
+
     console.log(`Tool: Reading file: ${filePath}`);
 
     try {
@@ -23,4 +29,21 @@ function readFile(filePath) {
     }
 }
 
-export { readFile };
+function listFiles(args) {
+    if (!args || !args.dirPath) {
+        return "Error: No directory path provided";
+    }
+
+    const dirPath = args.dirPath;
+
+    console.log(`Tool: Listing files in: ${dirPath}`);
+
+    try {
+        const files = fs.readdirSync(dirPath);
+        return files.join("\n");
+    } catch(e) {
+        return `Error: ${e.message}`;
+    }
+}
+
+export { readFile, listFiles };
