@@ -16,7 +16,7 @@ function readFile(args) {
         if (!fullPath.startsWith(process.cwd())) {
             return "Error: Path is outside of project directory";
         }
-        
+
         const stats = fs.statSync(fullPath);
         if (!stats.isFile()) {
             return `Error: File not found at ${filePath}`;
@@ -24,7 +24,7 @@ function readFile(args) {
 
         const content = fs.readFileSync(fullPath, "utf8");
         return content;
-    } catch(e) {
+    } catch (e) {
         return `Error: ${e.message}`;
     }
 }
@@ -41,9 +41,33 @@ function listFiles(args) {
     try {
         const files = fs.readdirSync(dirPath);
         return files.join("\n");
-    } catch(e) {
+    } catch (e) {
         return `Error: ${e.message}`;
     }
 }
 
-export { readFile, listFiles };
+function editFile(args) {
+    if (!args.path || args.oldStr === args.newStr) {
+        return "Error: Invalid input parameters";
+    }
+
+    try {
+        const oldContent = fs.readFileSync(args.path, "utf8");
+        const newContent = oldContent.replace(args.oldStr, args.newStr);
+
+        if (oldContent === newContent && args.oldStr != "") {
+            return "Error: oldStr not found in file";
+        }
+
+        fs.writeFileSync(args.path, newContent);
+    } catch (e) {
+        if (e.code === "ENOENT") {
+            fs.writeFileSync(args.path, args.newStr);
+            return "File created successfully";
+        }
+        return `Error: ${e.message}`;
+    }
+    return "File updated successfully";
+}
+
+export { readFile, listFiles, editFile };
