@@ -120,7 +120,6 @@ async function runAgent(agent, getUserMessage, config) {
                 content = await getUserMessage("You: ");
             }
 
-            console.log(`sending to model: ${content}`);
             const response = await chat.sendMessage({
                 message: content,
             });

@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 
+/**
+ * Reads a file and returns the content
+ * @param {Object} args - The arguments object
+ * @param {string} args.filePath - The path to the file to read
+ * @returns {string} The content of the file
+ */
 function readFile(args) {
     if (!args || !args.filePath) {
         return "Error: No file path provided";
@@ -29,6 +35,12 @@ function readFile(args) {
     }
 }
 
+/**
+ * Lists the contents of a directory
+ * @param {Object} args - The arguments object
+ * @param {string} args.dirPath - The path to the directory to list
+ * @returns {string} The contents of the directory
+ */
 function listFiles(args) {
     if (!args || !args.dirPath) {
         return "Error: No directory path provided";
@@ -46,6 +58,13 @@ function listFiles(args) {
     }
 }
 
+/**
+ * Edits a file
+ * @param {Object} args - The arguments object
+ * @param {string} args.path - The path to the file to edit
+ * @param {string} args.oldStr - The string to replace
+ * @param {string} args.newStr - The string to replace with
+ */
 function editFile(args) {
     if (!args.path || args.oldStr === args.newStr) {
         return "Error: Invalid input parameters";
